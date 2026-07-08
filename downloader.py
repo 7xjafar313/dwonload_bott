@@ -39,7 +39,7 @@ def get_ffmpeg_location() -> Optional[str]:
 # خيارات عامة لتخطي حظر اليوتيوب وعناوين الآي بي الخاصة بالسيرفرات
 YOUTUBE_BYPASS_ARGS = {
     "youtube": {
-        "player_client": ["default", "-android_sdkless"]
+        "player_client": ["ios"]
     }
 }
 
