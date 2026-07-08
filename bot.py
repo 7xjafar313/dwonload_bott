@@ -7,6 +7,11 @@ import os
 import logging
 from pathlib import Path
 
+# إضافة مسار المشروع الرئيسي لـ sys.path لتفادي مشاكل الاستيراد في السيرفرات
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 # حل مشكلة ترميز الحروف والرموز التعبيرية في ويندوز
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
