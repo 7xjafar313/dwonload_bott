@@ -4,6 +4,7 @@ downloader.py — منطق التحميل باستخدام yt-dlp
 import os
 import asyncio
 import logging
+import shutil
 from pathlib import Path
 from typing import Optional, Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -19,6 +20,30 @@ logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=4)
 
 
+def get_ffmpeg_location() -> Optional[str]:
+    """تحديد مجلد FFMPEG ديناميكياً للويندوز ولينكس (Render)"""
+    if os.name == "nt":
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if os.path.exists(os.path.join(current_dir, "ffmpeg.exe")):
+            return current_dir
+    # على لينكس (Render)
+    ffmpeg_bin = shutil.which("ffmpeg")
+    if ffmpeg_bin:
+        return os.path.dirname(ffmpeg_bin)
+    # خيار احتياطي افتراضي للينكس
+    if os.path.exists("/usr/bin/ffmpeg"):
+        return "/usr/bin"
+    return None
+
+
+# خيارات عامة لتخطي حظر اليوتيوب وعناوين الآي بي الخاصة بالسيرفرات
+YOUTUBE_BYPASS_ARGS = {
+    "youtube": {
+        "player_client": ["android", "ios"]
+    }
+}
+
+
 # ==================== جلب معلومات الميديا ====================
 def _extract_info(url: str, download: bool = False) -> dict:
     """استخراج معلومات الميديا (متزامن - يُستدعى في thread)"""
@@ -26,6 +51,8 @@ def _extract_info(url: str, download: bool = False) -> dict:
         "quiet": True,
         "no_warnings": True,
         "extract_flat": not download,
+        "ffmpeg_location": get_ffmpeg_location(),
+        "extractor_args": YOUTUBE_BYPASS_ARGS,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         return ydl.extract_info(url, download=download)
@@ -67,6 +94,8 @@ def _download_video(url: str, quality: str, output_dir: str,
         "merge_output_format": "mp4",
         "quiet": True,
         "no_warnings": True,
+        "ffmpeg_location": get_ffmpeg_location(),
+        "extractor_args": YOUTUBE_BYPASS_ARGS,
         "postprocessors": [{
             "key": "FFmpegVideoConvertor",
             "preferedformat": "mp4",
@@ -116,6 +145,8 @@ def _download_audio(url: str, quality: str, output_dir: str,
         "outtmpl": os.path.join(output_dir, "%(title).80s.%(ext)s"),
         "quiet": True,
         "no_warnings": True,
+        "ffmpeg_location": get_ffmpeg_location(),
+        "extractor_args": YOUTUBE_BYPASS_ARGS,
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
@@ -164,6 +195,8 @@ def _download_images(url: str, output_dir: str) -> list[str]:
         "no_warnings": True,
         "writethumbnail": True,
         "skip_download": True,
+        "ffmpeg_location": get_ffmpeg_location(),
+        "extractor_args": YOUTUBE_BYPASS_ARGS,
     }
 
     downloaded = []
@@ -199,6 +232,8 @@ def _download_playlist(url: str, as_audio: bool, output_dir: str,
             "outtmpl": os.path.join(output_dir, "%(playlist_index)s - %(title).60s.%(ext)s"),
             "quiet": True,
             "no_warnings": True,
+            "ffmpeg_location": get_ffmpeg_location(),
+            "extractor_args": YOUTUBE_BYPASS_ARGS,
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
@@ -212,6 +247,8 @@ def _download_playlist(url: str, as_audio: bool, output_dir: str,
             "merge_output_format": "mp4",
             "quiet": True,
             "no_warnings": True,
+            "ffmpeg_location": get_ffmpeg_location(),
+            "extractor_args": YOUTUBE_BYPASS_ARGS,
         }
 
     if progress_hook:
