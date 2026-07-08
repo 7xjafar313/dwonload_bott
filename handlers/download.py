@@ -171,14 +171,14 @@ async def handle_url_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 context.bot_data["url_map"].pop(ok, None)
         context.bot_data["url_map"][url_key] = text
 
-        # التحقق مما إذا كان الفيديو قصيراً للتحميل التلقائي الفوري
-        if is_short_video(text):
-            try:
-                await wait_msg.delete()
-            except Exception:
-                pass
-            await _do_download_video(update, context, text, quality="best", url_key=url_key)
-            return
+        # التحقق مما إذا كان الفيديو قصيراً للتحميل التلقائي الفوري (تم تعطيله بناءً على رغبة المستخدم ليسأله عن الخيارات)
+        # if is_short_video(text):
+        #     try:
+        #         await wait_msg.delete()
+        #     except Exception:
+        #         pass
+        #     await _do_download_video(update, context, text, quality="best", url_key=url_key)
+        #     return
 
         if is_playlist:
             entries = info.get("entries", [])
@@ -494,6 +494,7 @@ async def _do_download_video(update: Update, context: ContextTypes.DEFAULT_TYPE,
                                         f"🌐 {get_domain(url)}\n\n"
                                         f"🤖 عبر البوت: {BOT_USERNAME}",
                                 supports_streaming=True,
+                                write_timeout=180,
                             )
                         try:
                             os.remove(compressed_path)
@@ -540,6 +541,7 @@ async def _do_download_video(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 caption=f"✅ تم التحميل بنجاح! 🎉\n🌐 {get_domain(url)}\n\n"
                         f"🤖 عبر البوت: {BOT_USERNAME}",
                 supports_streaming=True,
+                write_timeout=180,
             )
 
         await status_msg.edit_text(
@@ -632,6 +634,7 @@ async def _do_download_audio(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 audio=f,
                 caption=f"🎵 تم التحميل!\n🌐 {get_domain(url)}\n\n"
                         f"🤖 عبر البوت: {BOT_USERNAME}",
+                write_timeout=180,
             )
 
         await status_msg.edit_text(
