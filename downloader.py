@@ -39,7 +39,7 @@ def get_ffmpeg_location() -> Optional[str]:
 # خيارات عامة لتخطي حظر اليوتيوب وعناوين الآي بي الخاصة بالسيرفرات
 YOUTUBE_BYPASS_ARGS = {
     "youtube": {
-        "player_client": ["android", "ios"]
+        "player_client": ["default", "-android_sdkless"]
     }
 }
 
@@ -78,13 +78,14 @@ def _download_video(url: str, quality: str, output_dir: str,
     """تحميل فيديو (متزامن)"""
     ensure_dir(output_dir)
 
+    # نحدد صيغة h264 (avc1) و aac (mp4a) لنضمن أن مشغل تيليجرام يستطيع تشغيل الفيديو مباشرة بدون مشاكل
     if quality == "best":
-        fmt = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best"
+        fmt = "bestvideo[vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
     else:
         fmt = (
+            f"bestvideo[height<={quality}][vcodec^=avc1]+bestaudio[acodec^=mp4a]/"
             f"bestvideo[height<={quality}][ext=mp4]+bestaudio[ext=m4a]/"
             f"bestvideo[height<={quality}]+bestaudio/"
-            f"best[height<={quality}][ext=mp4]/"
             f"best[height<={quality}]/best"
         )
 
