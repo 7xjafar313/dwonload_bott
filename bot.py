@@ -26,6 +26,7 @@ from telegram.ext import (
     MessageHandler,
     CallbackQueryHandler,
     filters,
+    ContextTypes,
 )
 
 # إعداد التسجيل
