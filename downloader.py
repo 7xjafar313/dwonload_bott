@@ -44,16 +44,35 @@ YOUTUBE_BYPASS_ARGS = {
 }
 
 
-# ==================== جلب معلومات الميديا ====================
-def _extract_info(url: str, download: bool = False) -> dict:
-    """استخراج معلومات الميديا (متزامن - يُستدعى في thread)"""
-    ydl_opts = {
+def get_ydl_opts(extra_opts: Optional[dict] = None) -> dict:
+    """تجهيز إعدادات yt-dlp مع تفعيل ملف الكوكيز تلقائياً ومضادات الحظر"""
+    opts = {
         "quiet": True,
         "no_warnings": True,
-        "extract_flat": not download,
         "ffmpeg_location": get_ffmpeg_location(),
         "extractor_args": YOUTUBE_BYPASS_ARGS,
     }
+
+    # تفعيل ملف الكوكيز (cookies.txt) لتخطي حظر يوتيوب وإثبات الهوية البشرية
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    cookies_path = os.path.join(current_dir, "cookies.txt")
+    if os.path.exists(cookies_path):
+        opts["cookiefile"] = cookies_path
+        logger.info("🍪 تم العثور على ملف cookies.txt وتفعيله في خيارات التحميل.")
+    else:
+        logger.warning("⚠️ لم يتم العثور على ملف cookies.txt. قد يفشل التحميل من يوتيوب على السيرفرات.")
+
+    if extra_opts:
+        opts.update(extra_opts)
+    return opts
+
+
+# ==================== جلب معلومات الميديا ====================
+def _extract_info(url: str, download: bool = False) -> dict:
+    """استخراج معلومات الميديا (متزامن - يُستدعى في thread)"""
+    ydl_opts = get_ydl_opts({
+        "extract_flat": not download,
+    })
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         return ydl.extract_info(url, download=download)
 
@@ -89,19 +108,15 @@ def _download_video(url: str, quality: str, output_dir: str,
             f"best[height<={quality}]/best"
         )
 
-    ydl_opts = {
+    ydl_opts = get_ydl_opts({
         "format": fmt,
         "outtmpl": os.path.join(output_dir, "%(title).80s.%(ext)s"),
         "merge_output_format": "mp4",
-        "quiet": True,
-        "no_warnings": True,
-        "ffmpeg_location": get_ffmpeg_location(),
-        "extractor_args": YOUTUBE_BYPASS_ARGS,
         "postprocessors": [{
             "key": "FFmpegVideoConvertor",
             "preferedformat": "mp4",
         }],
-    }
+    })
 
     if progress_hook:
         ydl_opts["progress_hooks"] = [progress_hook]
@@ -141,19 +156,15 @@ def _download_audio(url: str, quality: str, output_dir: str,
     """تحميل صوت بصيغة MP3 (متزامن)"""
     ensure_dir(output_dir)
 
-    ydl_opts = {
+    ydl_opts = get_ydl_opts({
         "format": "bestaudio/best",
         "outtmpl": os.path.join(output_dir, "%(title).80s.%(ext)s"),
-        "quiet": True,
-        "no_warnings": True,
-        "ffmpeg_location": get_ffmpeg_location(),
-        "extractor_args": YOUTUBE_BYPASS_ARGS,
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
             "preferredquality": quality,
         }],
-    }
+    })
 
     if progress_hook:
         ydl_opts["progress_hooks"] = [progress_hook]
@@ -189,16 +200,12 @@ def _download_images(url: str, output_dir: str) -> list[str]:
     """تحميل الصور (متزامن)"""
     ensure_dir(output_dir)
 
-    ydl_opts = {
+    ydl_opts = get_ydl_opts({
         "format": "best",
         "outtmpl": os.path.join(output_dir, "%(title).80s_%(autonumber)s.%(ext)s"),
-        "quiet": True,
-        "no_warnings": True,
         "writethumbnail": True,
         "skip_download": True,
-        "ffmpeg_location": get_ffmpeg_location(),
-        "extractor_args": YOUTUBE_BYPASS_ARGS,
-    }
+    })
 
     downloaded = []
     try:
@@ -228,29 +235,21 @@ def _download_playlist(url: str, as_audio: bool, output_dir: str,
     ensure_dir(output_dir)
 
     if as_audio:
-        ydl_opts = {
+        ydl_opts = get_ydl_opts({
             "format": "bestaudio/best",
             "outtmpl": os.path.join(output_dir, "%(playlist_index)s - %(title).60s.%(ext)s"),
-            "quiet": True,
-            "no_warnings": True,
-            "ffmpeg_location": get_ffmpeg_location(),
-            "extractor_args": YOUTUBE_BYPASS_ARGS,
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
                 "preferredquality": "192",
             }],
-        }
+        })
     else:
-        ydl_opts = {
+        ydl_opts = get_ydl_opts({
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "outtmpl": os.path.join(output_dir, "%(playlist_index)s - %(title).60s.%(ext)s"),
             "merge_output_format": "mp4",
-            "quiet": True,
-            "no_warnings": True,
-            "ffmpeg_location": get_ffmpeg_location(),
-            "extractor_args": YOUTUBE_BYPASS_ARGS,
-        }
+        })
 
     if progress_hook:
         ydl_opts["progress_hooks"] = [progress_hook]
