@@ -37,20 +37,12 @@ def get_ffmpeg_location() -> Optional[str]:
 
 
 # خيارات عامة لتخطي حظر اليوتيوب وعناوين الآي بي الخاصة بالسيرفرات
-YOUTUBE_BYPASS_ARGS = {
-    "youtube": {
-        "player_client": ["ios"]
-    }
-}
-
-
 def get_ydl_opts(extra_opts: Optional[dict] = None) -> dict:
     """تجهيز إعدادات yt-dlp مع تفعيل ملف الكوكيز تلقائياً ومضادات الحظر"""
     opts = {
         "quiet": True,
         "no_warnings": True,
         "ffmpeg_location": get_ffmpeg_location(),
-        "extractor_args": YOUTUBE_BYPASS_ARGS,
     }
 
     # تفعيل ملف الكوكيز (cookies.txt) لتخطي حظر يوتيوب وإثبات الهوية البشرية
@@ -59,8 +51,20 @@ def get_ydl_opts(extra_opts: Optional[dict] = None) -> dict:
     if os.path.exists(cookies_path):
         opts["cookiefile"] = cookies_path
         logger.info("🍪 تم العثور على ملف cookies.txt وتفعيله في خيارات التحميل.")
+        # عند استخدام كوكيز المتصفح، نترك المشغل الافتراضي ليتطابق مع جلسة المتصفح
+        opts["extractor_args"] = {
+            "youtube": {
+                "player_client": ["default"]
+            }
+        }
     else:
         logger.warning("⚠️ لم يتم العثور على ملف cookies.txt. قد يفشل التحميل من يوتيوب على السيرفرات.")
+        # عند عدم استخدام كوكيز، نستخدم مشغل iOS كتخطي احتياطي
+        opts["extractor_args"] = {
+            "youtube": {
+                "player_client": ["ios"]
+            }
+        }
 
     if extra_opts:
         opts.update(extra_opts)
